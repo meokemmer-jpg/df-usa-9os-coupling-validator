@@ -1,0 +1,104 @@
+# DF-USA-9OS-Coupling-Validator Configuration [CRUX-MK]
+df_id: DF-USA-9OS-COUPLING-VALIDATOR
+df_name: usa-9os-coupling-validator
+welle_introduced: welle-51
+version: 0.1.0-SKELETON
+status: PRE-PRODUCTION-CONDITIONAL
+type: foundation-df
+crux-mk: true
+
+k0_touch: true
+q0_touch: true
+phronesis_required: true
+sandbox_default: true
+country_code: "US"
+jurisdiction: "Florida"
+
+description: |
+  Profit-Garantie wenn HeyLou-USA + 9OS-NEXT-USA gekoppelt.
+  Profit-USD = Direct-Revenue + Anti-OTA-Savings - 9OS-Cost.
+  Refund-Mechanik bei Garantie-Verfehlung nach 90 Tagen.
+
+acceptance_criteria:
+  K11_cascade_containment:
+    cascade_isolation: "hard"
+    failure_blast_radius: 0
+    dependency_dlq_strategy: "isolated_dlq_per_hotel"
+  K12_distillation_resistenz:
+    output_feeds_into_training: false
+    provenance_required_in_output: true
+    non_llm_validation_layer: true
+  K13_independent_ground_truth:
+    external_anchor_type: "financial_market_data"  # Stripe USD
+    external_anchor_validation_frequency: "daily"
+    pre_action_domain_check: true
+    pre_action_backup_check: true
+    pre_action_blast_radius_check: true
+  K14_human_override_decay:
+    override_complexity: "multi_step"
+    override_documentation_freshness_days: 14
+    martin_review_cadence: "weekly"
+    bus_factor_handover_drilled: false
+  K15_entropy_budget:
+    entropy_added_loc_estimate: 820
+    entropy_added_concepts:
+      - USACouplingState
+      - ProfitSnapshotUSD
+      - USGuaranteeCheck
+      - USRefundTrigger
+    entropy_justified_by_rho: "USA-Markt-Erschliessung K_0+Q_0 Doppel"
+    entropy_subtractive_potential: "Konsolidiert USA-Coupling in 1 Pipeline"
+  K16_concurrent_spawn_mutex:
+    concurrent_spawn_protection: "both"
+    lock_dir: "/tmp/df-usa-9os-coupling-validator.lock"
+    lock_stale_age_h: 6
+    engine_pgrep_check: true
+    lock_release_on: "EXIT_INT_TERM"
+
+lose_coupling:
+  LC1_graceful_degradation:
+    degradation_modes:
+      - full
+      - degraded_revenue
+      - degraded_9os
+      - standalone
+    degradation_test_required: true
+  LC2_direct_mode:
+    direct_mode_available: true
+    direct_mode_capability: 0.40
+    direct_mode_trigger: "Cross-DF unreachable >30s"
+  LC3_circuit_breaker:
+    circuit_breaker_timeout_s: 30
+    circuit_breaker_open_threshold: 2
+    circuit_breaker_half_open_test_interval_s: 600
+  LC4_failure_isolation:
+    state_externalization: true
+    idempotent_operations: true
+    dependency_dlq_separate: true
+  LC5_health_check:
+    health_check_dependencies: []
+    health_check_degraded_score: 0.5
+    health_check_endpoint_or_file: "state/df-usa-9os-coupling-health.json"
+
+activation:
+  default_mode: "sandbox"
+  env_var_real_mode: "DF_USA_9OS_COUPLING_REAL_ENABLED"
+  phronesis_ticket_env: "PHRONESIS_TICKET"
+  phronesis_required_for: "refund_trigger"
+  pre_run_check_pflicht: true
+  cost_estimate_required: true
+  quota_budget_ceiling_calls_per_run: 30
+  cost_overrun_action: "hard_stop"
+
+cross_df:
+  upstream:
+    - df-usa-multi-tenant-orchestrator
+    - df-florida-hotel-acquisition-tracker
+  downstream: []
+
+shared_modules:
+  - _df_common/adapter_base
+  - _df_common/atomic_lock
+  - _df_common/k0_phronesis_gate
+
+[CRUX-MK]
