@@ -9,3 +9,12 @@ STOP.flag
 *.log
 .pytest_cache/
 .DS_Store
+*.env
+.env
+*.db
+*.sqlite
+*.sqlite3
+*.key
+*.pem
+secrets.json
+credentials.json

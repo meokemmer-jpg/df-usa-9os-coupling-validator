@@ -1,0 +1,8 @@
+{
+  "df": "df-usa-9os-coupling-validator",
+  "ts": "2026-06-05T10:36:49.703972+00:00",
+  "ok": true,
+  "bytes": 2805,
+  "model": "qwen2.5:14b-instruct",
+  "duration_s": 53.4
+}
