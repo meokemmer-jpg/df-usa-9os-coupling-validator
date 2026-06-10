@@ -1,9 +1,9 @@
 {
   "df": "df-usa-9os-coupling-validator",
-  "ts": "2026-06-09T01:30:36.462088+00:00",
+  "ts": "2026-06-09T15:01:57.325643+00:00",
   "ok": true,
-  "bytes": 5947,
+  "bytes": 5858,
   "model": "kemmer-14b-ctx8k",
   "mode": "produce",
-  "duration_s": 43.2
+  "duration_s": 42.8
 }
