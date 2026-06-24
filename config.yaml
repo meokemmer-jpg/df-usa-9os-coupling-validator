@@ -28,7 +28,6 @@ acceptance_criteria:
     output_feeds_into_training: false
     provenance_required_in_output: true
     non_llm_validation_layer: true
-  K13_independent_ground_truth:
     external_anchor_type: "financial_market_data"  # Stripe USD
     external_anchor_validation_frequency: "daily"
     pre_action_domain_check: true
@@ -102,3 +101,8 @@ shared_modules:
   - _df_common/k0_phronesis_gate
 
 [CRUX-MK]
+K13_external_anchor_type: verified_web_sources
+K13_external_anchor_validation_frequency: per_anchor_run
+K13_external_anchor_count: 3
+K13_external_anchor_evidence: https://de.statista.com/statistik/daten/studie/1458315/umfrage/marktvolumen-von-ki-in-europa/
+K13_anchored_ts: 2026-06-23T17:07:05.862856+00:00
