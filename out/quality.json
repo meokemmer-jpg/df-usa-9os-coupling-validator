@@ -1,9 +1,9 @@
 {
   "df": "df-usa-9os-coupling-validator",
-  "ts": "2026-07-19T15:57:17.275942+00:00",
+  "ts": "2026-07-20T03:55:51.184945+00:00",
   "maturity": "TESTED",
   "maturity_level": 4,
   "evidence_grade": 4,
-  "wargame_verdict": null,
+  "wargame_verdict": "CONDITIONAL",
   "crux": "[CRUX-MK]"
 }
