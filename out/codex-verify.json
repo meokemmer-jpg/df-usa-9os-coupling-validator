@@ -1,0 +1,6 @@
+{
+  "verdict": "HOLDS",
+  "reason": "Der Test prüft die Mission durch FUNKTION mit GEGENFALL (adversarialer Input -> anderer Output).",
+  "ts": "2026-09-03T19:03:08.141809+00:00",
+  "attempts": 3
+}

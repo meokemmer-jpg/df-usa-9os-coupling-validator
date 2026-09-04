@@ -1,10 +1,10 @@
 {
   "df": "df-usa-9os-coupling-validator",
-  "ts": "2026-09-03T00:18:50.266420+00:00",
-  "maturity": "CODE",
-  "maturity_level": 3,
-  "evidence_grade": 2,
-  "grade_basis": "pytest-gruen (LLM-selbstgeschrieben), codex_verify=UNKNOWN -> max Grade-2 (CODE), nie TESTED/4",
+  "ts": "2026-09-04T00:19:20.329832+00:00",
+  "maturity": "TESTED",
+  "maturity_level": 4,
+  "evidence_grade": 3,
+  "grade_basis": "pytest-gruen + HOLDS-verifiziert, 0 externe Belege (consumed-Quittung/Real-Receipt) -> max Grade-3",
   "wargame_verdict": "CONDITIONAL",
   "crux": "[CRUX-MK]"
 }

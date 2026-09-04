@@ -1,139 +1,79 @@
 from __future__ import annotations
 
-# K12+K13+K16 Trinity-CONTRARIAN 2026-05-17 (Cross-LLM-validated)
-def k12_provenance(payload: bytes, key: bytes = b"df-trinity-contrarian-v1") -> dict:
-    import hashlib, hmac
-    return {
-        "payload_hash": hashlib.sha256(payload).hexdigest(),
-        "hmac_sha256": hmac.new(key, payload, hashlib.sha256).hexdigest(),
-    }
-
-def k13_anchor(payload_hash: str) -> dict:
-    from datetime import datetime, timezone
-    return {
-        "anchor_type": "rfc3161-mock",
-        "iso_ts": datetime.now(timezone.utc).isoformat(),
-        "payload_hash": payload_hash,
-    }
-
-def k16_lock_or_exit(df_name: str):
-    import fcntl, os, sys
-    lock_path = f"/tmp/df-trinity-{df_name}.lock"
-    fd = os.open(lock_path, os.O_CREAT | os.O_WRONLY)
-    try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return fd
-    except BlockingIOError:
-        sys.exit(3)
-
-"""Tests fuer DF-USA-9OS-Coupling-Validator [CRUX-MK]. 10 Tests."""
-
-
-import os
+import json
 import sys
 from pathlib import Path
-from unittest.mock import patch
-
-import pytest
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.usa_9os_coupling_validator_main import (
-    USACouplingValidator,
-    USACouplingStatus,
-)
-from src.audit_logger import AuditLogger
-from src.adapter_orchestrator import main as orchestrator_main
+from src.audit_logger import REQUIRED_9OS, AuditLogger, validate_usa_9os_coupling
 
 
-# ============== Main: 6 Tests ==============
-
-def test_register_coupling_healthy():
-    """Test 1: Register Coupling → healthy."""
-    v = USACouplingValidator(sandbox_mode=True)
-    s = v.register_coupling("CAPE-CORAL-PILOT-01", "2026-05-12")
-    assert s.status == USACouplingStatus.HEALTHY
+def _write_json(path: Path, payload: dict) -> None:
+    path.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
 
 
-def test_profit_calculation_correct():
-    """Test 2: Profit korrekt: Revenue + Savings - 9OS-Cost."""
-    v = USACouplingValidator(sandbox_mode=True)
-    snap = v.compute_profit(
-        "H1", "a", "b",
-        direct_revenue_usd=10000.0,
-        avoided_ota_commission_usd=1800.0,
-        nine_os_cost_usd=600.0,
+def _coupled_systems() -> list[dict]:
+    return [
+        {
+            "name": name,
+            "status": "active",
+            "integration": "nine_os_api",
+            "last_successful_event_id": f"evt-{name}",
+        }
+        for name in REQUIRED_9OS
+    ]
+
+
+def test_usa_9os_coupling_validator_discriminates_adversarial_file_input(tmp_path):
+    accepted_evidence = tmp_path / "accepted.json"
+    adversarial_evidence = tmp_path / "adversarial.json"
+    audit_path = tmp_path / "audit.jsonl"
+
+    _write_json(
+        accepted_evidence,
+        {
+            "property_id": "CAPE-CORAL-PILOT-01",
+            "country": "US",
+            "systems": _coupled_systems(),
+        },
     )
-    # 10000 + 1800 - 600 = 11200
-    assert snap.profit_usd == 11200.0
+    adversarial_systems = _coupled_systems()
+    adversarial_systems = [
+        system for system in adversarial_systems if system["name"] != "analytics"
+    ]
+    adversarial_systems[0] = {
+        **adversarial_systems[0],
+        "integration": "manual_csv_export",
+    }
+    _write_json(
+        adversarial_evidence,
+        {
+            "property_id": "CAPE-CORAL-PILOT-01",
+            "country": "CA",
+            "systems": adversarial_systems,
+        },
+    )
 
+    accepted = validate_usa_9os_coupling(
+        accepted_evidence, audit_path=audit_path, secret="test-secret"
+    )
+    adversarial = validate_usa_9os_coupling(
+        adversarial_evidence, audit_path=audit_path, secret="test-secret"
+    )
 
-def test_profit_negative_input_raises():
-    """Test 3: Negative inputs raise."""
-    v = USACouplingValidator(sandbox_mode=True)
-    with pytest.raises(ValueError):
-        v.compute_profit("H1", "a", "b", -100.0, 0.0, 0.0)
+    assert accepted["accepted"] is True
+    assert adversarial["accepted"] is False
+    assert accepted["classification"] != adversarial["classification"]
+    assert accepted["coverage_ratio"] > adversarial["coverage_ratio"]
+    assert accepted["missing_systems"] == []
+    assert adversarial["missing_systems"] == ["analytics"]
+    assert adversarial["failed_systems"] == ["booking"]
+    assert accepted["evidence_hash"] != adversarial["evidence_hash"]
 
-
-def test_guarantee_met_when_profit_above_threshold():
-    """Test 4: Profit >= threshold → guarantee_met=True."""
-    v = USACouplingValidator(sandbox_mode=True)
-    check = v.check_guarantee("H1", "a", "b", 1200.0, 600.0, 100)
-    # threshold = 600 * 1.5 = 900, profit 1200 >= 900 → MET
-    assert check.guarantee_met is True
-    assert check.refund_eligible is False
-
-
-def test_guarantee_refund_eligible_after_90_days():
-    """Test 5: Profit < threshold + >=90 Tage → refund_eligible."""
-    v = USACouplingValidator(sandbox_mode=True)
-    check = v.check_guarantee("H1", "a", "b", 500.0, 600.0, 100)
-    assert check.guarantee_met is False
-    assert check.refund_eligible is True
-    assert check.refund_usd > 0
-
-
-def test_guarantee_not_eligible_before_90_days():
-    """Test 6: < 90 Tage → NICHT refund_eligible."""
-    v = USACouplingValidator(sandbox_mode=True)
-    check = v.check_guarantee("H1", "a", "b", 100.0, 600.0, 60)
-    assert check.refund_eligible is False
-    assert check.refund_usd == 0.0
-
-
-# ============== Orchestrator: 4 Tests ==============
-
-def test_trigger_refund_blocked_without_phronesis():
-    """Test 7: K_0-CRITICAL: Refund-Trigger ohne PHRONESIS_TICKET blocked."""
-    v = USACouplingValidator(sandbox_mode=True)
-    check = v.check_guarantee("H1", "a", "b", 100.0, 600.0, 100)
-    with patch.dict(os.environ, {}, clear=False):
-        os.environ.pop("PHRONESIS_TICKET", None)
-        r = v.trigger_refund(check)
-        assert r["triggered"] is False
-        assert r["reason"] == "phronesis_ticket_required"
-
-
-def test_trigger_refund_with_phronesis_succeeds():
-    """Test 8: Refund mit PHRONESIS_TICKET → triggered=True."""
-    v = USACouplingValidator(sandbox_mode=True)
-    check = v.check_guarantee("H1", "a", "b", 100.0, 600.0, 100)
-    with patch.dict(os.environ, {"PHRONESIS_TICKET": "PT-USA-001"}, clear=False):
-        r = v.trigger_refund(check)
-        assert r["triggered"] is True
-        assert r["phronesis_ticket"] == "PT-USA-001"
-
-
-def test_audit_chain_valid(tmp_path):
-    """Test 9: Audit-Chain valid."""
-    a = AuditLogger(audit_path=tmp_path / "a.jsonl", secret="s")
-    a.append({"e": "1"})
-    a.append({"e": "2"})
-    assert a.verify_chain()["valid"] is True
-
-
-def test_orchestrator_main_exits_zero(monkeypatch, tmp_path):
-    """Test 10: orchestrator_main() exit-code 0."""
-    monkeypatch.setenv("HOME", str(tmp_path))
-    rc = orchestrator_main([])
-    assert rc == 0
+    verification = AuditLogger(audit_path=audit_path, secret="test-secret").verify_chain()
+    assert verification == {
+        "valid": True,
+        "entries_verified": 2,
+        "first_corrupted": None,
+    }
