@@ -1,10 +1,10 @@
 {
   "df": "df-usa-9os-coupling-validator",
-  "ts": "2026-09-10T03:25:59.947018+00:00",
+  "ts": "2026-09-11T03:26:35.201959+00:00",
   "maturity": "TESTED",
   "maturity_level": 4,
   "evidence_grade": 3,
   "grade_basis": "pytest-gruen + HOLDS-verifiziert, 0 externe Belege (consumed-Quittung/Real-Receipt) -> max Grade-3",
-  "wargame_verdict": null,
+  "wargame_verdict": "CONDITIONAL",
   "crux": "[CRUX-MK]"
 }
